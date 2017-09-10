@@ -187,6 +187,19 @@ class OSError < Exception
   # Returns the numeric value of errno.
   getter errno : Int32
 
+  private def self.errno_to_class(errno) : OSError.class
+    {% begin %}
+      case errno
+        {% for cls in OSError.all_subclasses %}
+          {% for errno in cls.constant("ERRORS") || [] of ASTNode %}
+            when {{errno}} then {{cls}}
+          {% end %}
+        {% end %}
+      else OSError
+      end
+    {% end %}
+  end
+
   # Creates a new OSError with the given message. The message will
   # have concatenated the message denoted by `Crystal::System::Errno.value`.
   #
@@ -198,11 +211,55 @@ class OSError < Exception
   #   raise OSError.create("some_call")
   # end
   # ```
-  def self.create(message, errno = Crystal::System::Errno.value)
-    new("#{message}: #{String.new(LibC.strerror(errno))}", errno)
+  def self.create(message = nil, errno = Crystal::System::Errno.value)
+    cls = errno_to_class(errno)
+    message ||= cls.name
+    cls.new("#{message}: #{String.new(LibC.strerror(errno))}", errno)
   end
 
   def initialize(message, @errno)
     super(message)
   end
+end
+
+class BlockingIOError < OSError
+  ERRORS = {EAGAIN, EALREADY, EINPROGRESS, EWOULDBLOCK}
+end
+
+class ConnectionError < OSError
+  class BrokenPipe < ConnectionError
+    ERRORS = {EPIPE} # ESHUTDOWN is missing
+  end
+
+  class ConnectionAborted < ConnectionError
+    ERRORS = {ECONNABORTED}
+  end
+
+  class ConnectionRefused < ConnectionError
+    ERRORS = {ECONNREFUSED}
+  end
+
+  class ConnectionReset < ConnectionError
+    ERRORS = {ECONNRESET}
+  end
+end
+
+class FileExistsError < OSError
+  ERRORS = {EEXIST}
+end
+
+class FileNotFoundError < OSError
+  ERRORS = {ENOENT}
+end
+
+class IsADirectoryError < OSError
+  ERRORS = {EISDIR}
+end
+
+class NotADirectoryError < OSError
+  ERRORS = {ENOTDIR}
+end
+
+class PermissionError < OSError
+  ERRORS = {EACCES, EPERM}
 end
