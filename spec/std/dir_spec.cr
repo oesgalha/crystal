@@ -215,7 +215,13 @@ describe "Dir" do
 
     it "raises for nonexistent directory" do
       expect_raises FileNotFoundError do
-        Dir.cd("/nope")
+        Dir.cd("nope")
+      end
+    end
+
+    it "raises for file" do
+      expect_raises NotADirectoryError do
+        Dir.cd("/usr/bin/env")
       end
     end
 

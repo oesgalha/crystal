@@ -393,6 +393,13 @@ describe "File" do
         File.delete(filename)
       end
     end
+
+    it "raises when it's a directory" do
+      filename = "#{__DIR__}/data"
+      expect_raises IsADirectoryError do
+        File.delete(filename)
+      end
+    end
   end
 
   describe "rename" do
